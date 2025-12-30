@@ -1,0 +1,7 @@
+data/
+__pycache__/
+*.nii.gz
+*.csv
+*.log
+.ipynb_checkpoints/
+temp/
