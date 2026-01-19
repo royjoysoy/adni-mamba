@@ -1,0 +1,89 @@
+Week 1 Day 1 (1/19/26) — Baseline pipeline 구축 + tabular(4개 vs 10개) 비교 실험
+
+목표
+- RID 단위 split 고정 (데이터 누수 방지)
+- Dataset/Loader 구축: CSV(Image Data ID) ↔ NIfTI 매칭
+- Baseline 학습 스크립트(train_1_19_26.py) + config 기반 실행
+- 결과 저장(runs/...) 확인
+- (추가) tabular 입력을 4개 → 10개로 확장해 동일 파이프라인에서 비교 실행
+
+오늘 한 일
+1) RID split 생성 (seed=0 고정)
+- split json: splits/adni_rid_split_v1_seed0_1_19_26.json
+- split summary (콘솔 출력 기준):
+  - TRAIN: n_rid=523, n_images=2010
+  - VAL  : n_rid=75,  n_images=271
+  - TEST : split.json에 저장
+
+2) Dataset/Loader 구현
+- 파일: src/data/adni_dataset_1_19_26.py
+- CSV: /home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-smoke-test-list-wise-deletion-rs_copy.csv
+- 이미지 매칭:
+  - image_dir: /home/ads_sry/royseo/data
+  - glob pattern: *I{image_id}.nii.gz
+- 이미지 shape 확인: (64,64,64) -> tensor (1,64,64,64)
+- label map: CN/MCI/AD (3-class)
+
+3) Baseline 모델 & 학습 실행 (CNN + tabular 결합)
+- 모델 파일: src/models/baseline_cnn_tabular_1_19_26.py
+- 학습 엔트리: train_1_19_26.py
+
+------------------------------------------------------------
+실험 A: tabular 4개 (pipeline smoke test 목적)
+- tabular cols: [Age, Sex, PTEDUCAT, APOE4]
+- Sex encoding: M->1, F->0
+- tabular standardize: true
+- config: configs/baseline/baseline_v1_1_19_26.yaml
+
+실행 커맨드
+PYTHONPATH=/home/ads_sry/royseo/projects/adni-mamba/A_1_19_26 \
+python train_1_19_26.py --config configs/baseline/baseline_v1_1_19_26.yaml
+
+결과(run)
+- run dir: /home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/runs/baseline_v1_seed0_1_19_26
+- best epoch: 3
+- best val loss: 0.5919108354128324
+- test loss: 0.5998849367250257
+- test acc: 0.6641790866851807
+- test balanced acc: 0.6613348722457886
+
+산출물
+- config.yaml / split.json / run_metadata.json
+- metrics.csv / metrics_best.json
+- model_best.pt / model_final.pt
+
+------------------------------------------------------------
+실험 B: tabular 10개 (관심 변수 세트; cont7 + cat3)
+- cont cols (7):
+  - Age, PTEDUCAT, VSWEIGHT, VSBPSYS, VSBPDIA, VSPULSE, VSRESP
+- cat cols (3):
+  - Sex (M/F -> 1/0), PTMARRY (category codes), APOE4 (0/1/2)
+- tabular standardize: true (cont cols)
+- config: configs/baseline/baseline_v1_tab10_1_19_26.yaml
+
+실행 커맨드
+PYTHONPATH=/home/ads_sry/royseo/projects/adni-mamba/A_1_19_26 \
+python train_1_19_26.py --config configs/baseline/baseline_v1_tab10_1_19_26.yaml
+
+결과(run)
+- run dir: /home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/runs/baseline_v1_tab10_seed0_1_19_26
+- best epoch: 5
+- best val loss: 0.5981045950490694
+- test loss: 0.703582166374397
+- test acc: 0.6305969953536987
+- test balanced acc: 0.5541426837444305
+
+산출물
+- config.yaml / split.json / run_metadata.json
+- metrics.csv / metrics_best.json
+- model_best.pt / model_final.pt
+
+------------------------------------------------------------
+메모/관찰
+- tabular 10개 세팅에서 test balanced accuracy가 하락함.
+- 다음 단계에서 confusion matrix 및 class별 성능을 확인해 원인을 분석할 예정.
+
+다음 (Week1 Day2)
+- checkpoint 로드/재평가 스크립트 추가 (eval 자동화)
+- metrics 출력 형식 통일(JSON + csv)
+- seed 1/2 반복 실행 후 평균±표준편차 계산

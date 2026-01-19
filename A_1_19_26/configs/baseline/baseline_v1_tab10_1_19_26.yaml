@@ -1,47 +1,29 @@
-# configs/baseline/baseline_v1.yaml
 experiment:
-  name: baseline_v1
+  name: baseline_v1_tab10
   date_tag: "1_19_26"
   seed: 0
   output_dir: /home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/runs
-
 
 data:
   csv_path: /home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-smoke-test-list-wise-deletion-rs_copy.csv
   image_id_col: "Image Data ID"
   image_dir: "/home/ads_sry/royseo/data"
   image_glob_pattern: "*I{image_id}.nii.gz"
- 
+
   rid_col: RID_x
   label_col: DX_bl
   split_json: /home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/splits/adni_rid_split_v1_seed0_1_19_26.json
-   
-  cont_cols:
-    - Age
-    - PTEDUCAT
-    - VSWEIGHT
-    - VSBPSYS
-    - VSBPDIA
-    - VSPULSE
-    - VSRESP
 
-  cat_cols:
-    - Sex
-    - PTMARRY
-    - APOE4
-  allowed_labels: [CN, MCI, AD]
-  strict_tabular_cols: true
+  cont_cols: [Age, PTEDUCAT, VSWEIGHT, VSBPSYS, VSBPDIA, VSPULSE, VSRESP]
+  cat_cols: [Sex, PTMARRY, APOE4]
 
-
-  # 표준화/인코딩은 train split 기준으로만 fit
   tabular_standardize: true
-  sex_encoding: binary  # 예: M/F -> 0/1 (네 코드 방식에 맞게)
+  sex_encoding: binary
 
 model:
   name: baseline_3dcnn_tabular_1_19_26
   input_shape: [1, 64, 64, 64]
   num_classes: 3
-  tabular_fusion: concat_after_pool  # Day1 고정
 
 train:
   epochs: 5

@@ -148,7 +148,9 @@ def main():
             image_glob_pattern=dcfg["image_glob_pattern"],
             rid_col=dcfg["rid_col"],
             label_col=dcfg["label_col"],
-            tabular_cols=dcfg["tabular_cols"],
+            tabular_cols=dcfg.get("tabular_cols", None),   # legacy
+            cont_cols=dcfg.get("cont_cols", None),         # new
+            cat_cols=dcfg.get("cat_cols", None),           # new
             tabular_standardize=bool(dcfg.get("tabular_standardize", True)),
             sex_encoding=dcfg.get("sex_encoding", "binary"),
         )
@@ -164,7 +166,15 @@ def main():
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw, pin_memory=True)
     test_loader = DataLoader(test_ds, batch_size=bs, shuffle=False, num_workers=nw, pin_memory=True)
 
-    tab_dim = len(dcfg["tabular_cols"])
+    tab_cols = dcfg.get("tabular_cols", None)
+    cont_cols = dcfg.get("cont_cols", []) or []
+    cat_cols = dcfg.get("cat_cols", []) or []
+
+    if tab_cols is not None:
+        tab_dim = len(tab_cols)
+    else:
+        tab_dim = len(cont_cols) + len(cat_cols)
+
     num_classes = int(mcfg["num_classes"])
     model = Baseline3DCNNTabular_1_19_26(tabular_dim=tab_dim, num_classes=num_classes).to(device)
 
