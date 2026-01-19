@@ -5,3 +5,14 @@ __pycache__/
 *.log
 .ipynb_checkpoints/
 temp/
+
+# experiment outputs
+A_1_19_26/runs/
+A_1_19_26/logs/
+
+# python cache
+__pycache__/
+*.pyc
+
+# model checkpoints
+*.pt
