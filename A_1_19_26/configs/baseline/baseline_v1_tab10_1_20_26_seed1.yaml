@@ -1,0 +1,40 @@
+experiment:
+  name: baseline_v1_tab10
+  date_tag: "1_19_26"
+  seed: 1
+  output_dir: /home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/runs
+
+data:
+  csv_path: /home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-smoke-test-list-wise-deletion-rs_copy.csv
+  image_id_col: "Image Data ID"
+  image_dir: "/home/ads_sry/royseo/data"
+  image_glob_pattern: "*I{image_id}.nii.gz"
+
+  rid_col: RID_x
+  label_col: DX_bl
+  split_json: /home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/splits/adni_rid_split_v1_seed0_1_19_26.json
+
+  cont_cols: [Age, PTEDUCAT, VSWEIGHT, VSBPSYS, VSBPDIA, VSPULSE, VSRESP]
+  cat_cols: [Sex, PTMARRY, APOE4]
+
+  tabular_standardize: true
+  sex_encoding: binary
+
+model:
+  name: baseline_3dcnn_tabular_1_19_26
+  input_shape: [1, 64, 64, 64]
+  num_classes: 3
+
+train:
+  epochs: 5
+  batch_size: 2
+  lr: 1e-4
+  weight_decay: 1e-2
+  num_workers: 4
+  amp: true
+  device: cuda
+
+eval:
+  metrics: [acc, balanced_acc]
+  save_best: true
+  criterion: val_loss
