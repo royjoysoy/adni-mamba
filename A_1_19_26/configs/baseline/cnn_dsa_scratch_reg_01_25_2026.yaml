@@ -1,0 +1,59 @@
+# File: configs/baseline/cnn_dsa_scratch_01_24_2026.yaml
+# Date: 01_24_2026
+# What this is:
+#   Train DSA-3D-CNN (paper-style) from scratch for 3-class classification (CN/MCI/AD).
+#
+# Inputs:
+#   - CSV: ADNI table with Image ID + label + RID + (optional) tabular columns
+#   - Images: skull-stripped T1 NIfTI volumes (expected shape should match dataset loader check)
+#   - Split JSON: train/val/test RID lists
+#
+# Outputs (auto-created by train_1_20_26.py):
+#   - runs/<exp_name>/<exp_name>_<date>_<timestamp>_seed<seed>_<gitshort>/
+#     - config_<date>.yaml (snapshot)
+#     - meta_<date>.json
+#     - model_best_<date>.pt / model_last_<date>.pt / model_final_<date>.pt
+#     - preds_train_<date>.csv / preds_val_<date>.csv / preds_test_<date>.csv
+#     - metrics_<date>.json / metrics_epoch_<date>.csv
+#
+# Run:
+#   cd ~/royseo/projects/adni-mamba/A_1_19_26
+#   python train_1_20_26.py --config ./configs/baseline/cnn_dsa_scratch_01_24_2026.yaml
+
+experiment:
+  name: "cnn_dsa_scratch_01_24_2026"
+  seed: 2026
+  output_dir: "./runs"
+
+data:
+  csv_path: "/home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-raw-4508-1-22-2026.csv"   # <-- 너 실제 CSV로 수정
+  split_json: "/home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/splits/split_rids_full_dx2_01_24_2026.json"                       # <-- 너 split json 파일로 수정
+
+  image_id_col: "Image Data ID"                                         # <-- CSV 컬럼명 확인
+  rid_col: "RID"                                                      # <-- 너 CSV에서 RID 컬럼명
+  label_col: "DX2"                                               # <-- 너 라벨 컬럼명(CN/MCI/AD)
+
+  image_dir: "/home/ads_sry/royseo/data"                                          # <-- 이미지 폴더로 수정
+  image_glob_pattern: "*I{image_id}.nii.gz"                             # <-- 너 파일 규칙에 맞게 수정
+
+  # tabular을 완전히 빼면 ADNIDataset이 에러를 내서,
+  # 최소한 1개 컬럼은 넣어야 함 (현재 ADNIDataset은 tabular 없으면 ValueError 발생)
+  # -> 가장 안전: Age 같은 연속형 1개 + Sex(범주형) 1개
+  cont_cols: ["Age"]
+  cat_cols: ["Sex"]
+
+  tabular_standardize: true
+  sex_encoding: "binary"
+
+train:
+  epochs: 10
+  batch_size: 16
+  lr: 0.0001
+  weight_decay: 0.05
+  amp: true
+  device: "cuda"
+  num_workers: 6
+
+model:
+  name: "dsa_3dcnn_01_24_2026"
+  num_classes: 3

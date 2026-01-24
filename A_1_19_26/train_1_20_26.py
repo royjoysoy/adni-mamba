@@ -10,9 +10,12 @@ import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
+import pandas as pd
+
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import yaml
@@ -80,7 +83,8 @@ def compute_metrics(logits: torch.Tensor, y: torch.Tensor, num_classes: int):
 def run_one_epoch(model, loader, device, optimizer=None, scaler=None, num_classes=3):
     is_train = optimizer is not None
     model.train(is_train)
-    ce = nn.CrossEntropyLoss()
+    ce = nn.CrossEntropyLoss(label_smoothing=0.05)
+
 
     total_loss = 0.0
     n_batches = 0
@@ -117,6 +121,75 @@ def run_one_epoch(model, loader, device, optimizer=None, scaler=None, num_classe
     metrics = compute_metrics(all_logits, all_y, num_classes=num_classes)
     metrics["loss"] = float(total_loss / max(n_batches, 1))
     return metrics
+
+@torch.no_grad()
+def dump_predictions(model, loader, device, num_classes: int, out_csv: Path, split_name: str):
+    model.eval()
+
+    rows = []
+    for batch in loader:
+        img = batch["image"].to(device, non_blocking=True)
+        tab = batch["tabular"].to(device, non_blocking=True)
+        y = batch["label"].to(device, non_blocking=True)
+
+        logits = model(img, tab)                    # [B, C]
+        probs = F.softmax(logits, dim=1)            # [B, C]
+        pred = torch.argmax(logits, dim=1)          # [B]
+
+        logits = logits.detach().cpu().numpy()
+        probs = probs.detach().cpu().numpy()
+        pred = pred.detach().cpu().numpy()
+        y = y.detach().cpu().numpy()
+
+        # ---- metadata (있으면 저장, 없으면 NaN/None) ----
+        # ADNIDataset이 아래 key들을 반환하도록 해두면 가장 좋음:
+        # "RID", "Image Data ID", "Month_bl", "DX2", "EXAMDATE"
+        rid = batch.get("RID", batch.get("rid", None))
+        img_id = batch.get("Image Data ID", batch.get("image_id", None))
+        month_bl = batch.get("Month_bl", batch.get("month_bl", None))
+        dx2 = batch.get("DX2", batch.get("dx2", None))
+        examdate = batch.get("EXAMDATE", batch.get("examdate", None))
+
+        # tensor면 cpu로
+        def to_list(x):
+            if x is None:
+                return [None] * len(y)
+            if torch.is_tensor(x):
+                return x.detach().cpu().numpy().tolist()
+            if isinstance(x, (list, tuple)):
+                return list(x)
+            return [x] * len(y)
+
+        rid_l = to_list(rid)
+        img_id_l = to_list(img_id)
+        month_bl_l = to_list(month_bl)
+        dx2_l = to_list(dx2)
+        examdate_l = to_list(examdate)
+
+        for i in range(len(y)):
+            r = {
+                "split": split_name,
+                "y_true": int(y[i]),
+                "y_pred": int(pred[i]),
+            }
+            # meta
+            r["RID"] = rid_l[i]
+            r["Image Data ID"] = img_id_l[i]
+            r["Month_bl"] = month_bl_l[i]
+            r["DX2"] = dx2_l[i]
+            r["EXAMDATE"] = examdate_l[i]
+
+            # logits/probs
+            for c in range(num_classes):
+                r[f"logit_c{c}"] = float(logits[i, c])
+                r[f"prob_c{c}"] = float(probs[i, c])
+
+            rows.append(r)
+
+    df = pd.DataFrame(rows)
+    df.to_csv(out_csv, index=False)
+    print(f"[Saved preds] {out_csv} (n={len(df)})")
+
 
 
 # =========================
@@ -311,6 +384,15 @@ def main():
     best = torch.load(ckpt_best_path, map_location=device)
     model.load_state_dict(best["model_state"])
     te = run_one_epoch(model, test_loader, device, optimizer=None, scaler=None, num_classes=num_classes)
+
+    preds_train_csv = run_dir / f"preds_train_{date_tag}.csv"
+    preds_val_csv   = run_dir / f"preds_val_{date_tag}.csv"
+    preds_test_csv  = run_dir / f"preds_test_{date_tag}.csv"
+
+    dump_predictions(model, train_loader, device, num_classes, preds_train_csv, "train")
+    dump_predictions(model, val_loader, device, num_classes, preds_val_csv, "val")
+    dump_predictions(model, test_loader, device, num_classes, preds_test_csv, "test")
+
 
     # (14) metrics.json (single official file)
     metrics_all = {
