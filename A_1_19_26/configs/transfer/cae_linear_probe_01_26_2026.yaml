@@ -1,0 +1,51 @@
+# ============================================================
+# Config: CAE -> Linear Probe (encoder FROZEN)
+# File:  configs/transfer/cae_linear_probe_01_26_2026.yaml
+#
+# Image shape: (B,1,64,64,64)
+#
+# Run:
+#   python train_cae_transfer_01_26_2026.py --config ./configs/transfer/cae_linear_probe_01_26_2026.yaml
+# ============================================================
+
+experiment:
+  name: "cae_linear_probe_01_26_2026"
+  seed: 2026
+  output_dir: "./runs"
+  date_tag: "01_26_26"
+
+data:
+  csv_path: "/home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-raw-4508-1-22-2026.csv"
+  split_json: "/home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/splits/split_rids_full_dx2_01_24_2026.json"
+
+  image_id_col: "Image Data ID"
+  rid_col: "RID"
+  label_col: "DX2"
+
+  image_dir: "/home/ads_sry/royseo/data"
+  image_glob_pattern: "*I{image_id}.nii.gz"
+
+  cont_cols: ["Age"]
+  cat_cols: ["Sex"]
+  tabular_standardize: true
+  sex_encoding: "binary"
+  image_scale: 1000.0
+
+train:
+  epochs: 50
+  batch_size: 16
+  lr: 3e-4
+  weight_decay: 0.05
+  amp: false
+  device: "cuda"
+  num_workers: 6
+
+model:
+  in_ch: 1
+  num_classes: 3
+
+  cae_ckpt_path: "runs/cae_pretrain_full_01_25_2026/cae_pretrain_full_01_25_2026_01_25_26_2026-01-25_011042_seed2026_64b3f2f/cae_final_01_25_26.pt"
+
+  freeze_encoder: true
+  head: "mlp"
+  head_hidden: 256

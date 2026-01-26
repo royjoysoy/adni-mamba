@@ -1,0 +1,34 @@
+experiment:
+  name: cae_pretrain_full_01_25_2026
+  seed: 2026
+  output_dir: runs
+
+data:
+  csv_path: "/home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-raw-4508-1-22-2026.csv"
+  split_json: "splits/split_rids_full_dx2_01_24_2026.json"
+
+  image_id_col: "Image Data ID"
+  rid_col: "RID"
+  label_col: "DX2"  # not used for CAE loss, but dataset expects it
+
+  image_dir: "/home/ads_sry/royseo/data"   # <-- 너 실제 이미지 폴더로
+  image_glob_pattern: "*I{image_id}.nii.gz"
+
+  # ADNIDataset가 tabular 없으면 에러내서 최소 2개 유지
+  cont_cols: ["Age"]
+  cat_cols: ["Sex"]
+
+  tabular_standardize: true
+  sex_encoding: "binary"
+
+model:
+  in_ch: 1
+
+train:
+  device: "cuda"
+  epochs: 50
+  batch_size: 4
+  num_workers: 6
+  lr: 0.0001
+  weight_decay: 0.01
+  amp: true

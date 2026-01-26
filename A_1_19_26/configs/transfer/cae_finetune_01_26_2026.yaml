@@ -1,0 +1,63 @@
+# ============================================================
+# Config: CAE -> Fine-tune (Supervised Transfer Learning)
+# Date: 01_26_2026
+#
+# What this does:
+# - Pretrained CAE encoder weights 로 초기화 후
+# - encoder + classification head를 같이 학습 (fine-tuning)
+#
+# Run:
+#   python train_cae_transfer_01_26_2026.py --config ./configs/transfer/cae_finetune_01_26_2026.yaml
+# Notes:
+# - images are (1,64,64,64)
+# - image_scale: 1000.0  => img = img / 1000.0 을 Dataset 레벨에서 적용(재현성↑)
+# - lr_encoder << lr_head 추천
+# ============================================================
+
+experiment:
+  name: "cae_finetune_01_26_2026"
+  seed: 2026
+  output_dir: "./runs"
+  date_tag: "01_26_26"
+
+data:
+  csv_path: "/home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-raw-4508-1-22-2026.csv"
+  split_json: "/home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/splits/split_rids_full_dx2_01_24_2026.json"
+
+  image_id_col: "Image Data ID"
+  rid_col: "RID"
+  label_col: "DX2"
+
+  image_dir: "/home/ads_sry/royseo/data"
+  image_glob_pattern: "*I{image_id}.nii.gz"
+
+  cont_cols: ["Age"]
+  cat_cols: ["Sex"]
+  tabular_standardize: true
+  sex_encoding: "binary"
+
+  # ✅ dataset-level normalization
+  image_scale: 1000.0
+
+train:
+  device: "cuda"
+  epochs: 50
+  batch_size: 16
+  num_workers: 6
+
+  # ✅ Fine-tune 핵심: encoder lr 작게, head lr 크게
+  lr_head: 3e-4        # classifier head
+  lr_encoder: 3e-5     # CAE encoder (보통 10x 작게)
+  weight_decay: 0.05
+
+  amp: true
+
+model:
+  in_ch: 1
+  num_classes: 3
+
+  cae_ckpt_path: "runs/cae_pretrain_full_01_25_2026/cae_pretrain_full_01_25_2026_01_25_26_2026-01-25_011042_seed2026_64b3f2f/cae_best_01_25_26.pt"
+
+  freeze_encoder: false
+  head: "mlp"
+  head_hidden: 256

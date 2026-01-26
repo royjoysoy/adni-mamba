@@ -1,0 +1,56 @@
+# ============================================================
+# 이 파일 헷갈리지 말것!
+#Config: CAE 3D Pretraining (UNSUPERVISED)
+# File:  configs/pretrain/cae_pretrain_full_01_26_2026.yaml
+# Date:  01_26_2026
+# 이 파일은 실제로 돌리겨고 준게 아니라 날짜 맞춰서 1_26_2026 지금 내가 어디까지 했는지를 기준점으로
+# 파이파르인 젠체를 3단계로 정리해 놓은 파일
+# 1. CAE pretrain (unsupervised) 여기까지 되어 있음 현재
+# 2. CAE linear probe (supervised, freenze encoder)
+#    -configs/transfer/cae_linear_probe_01_26_2026.yaml 실제로는 이파일 사용해서 돌릴거임
+# 3. CAE finr-tune (supervised, unfreeze encoder)
+#    - configs/transfer/cae_finetune_01_26_2026.yaml 실제로는 이파일 사용해서 돌릴거임
+#
+# Goal:
+# - 3D Convolutional Autoencoder(CAE)로 T1 MRI를 재구성(reconstruction) 학습
+# - 라벨(DX2)은 loss에 쓰지 않음 (dataset loader가 요구해서 label_col만 유지)
+#
+# Outputs:
+# - runs/<exp_name>/<run_name>/cae_best_<date>.pt   (best val_mse)
+# - runs/<exp_name>/<run_name>/cae_final_<date>.pt  (last epoch)
+# - metrics_<date>.json (best_epoch, best_val_mse 요약)
+#실행:
+# python train_cae_01_25_2026.py --config ./configs/pretrain/cae_pretrain_full_01_26_2026.yaml
+# ============================================================
+
+experiment:
+  name: cae_pretrain_full_01_26_2026
+  seed: 2026
+  output_dir: runs
+
+data:
+  csv_path: "/home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-raw-4508-1-22-2026.csv"
+  split_json: "splits/split_rids_full_dx2_01_24_2026.json"
+
+  image_id_col: "Image Data ID"
+  rid_col: "RID"
+  label_col: "DX2"
+
+  image_dir: "/home/ads_sry/royseo/data"
+  image_glob_pattern: "*I{image_id}.nii.gz"
+
+  cont_cols: ["Age"]
+  cat_cols: ["Sex"]
+  tabular_standardize: true
+  sex_encoding: "binary"
+
+model:
+  in_ch: 1
+
+train:
+  device: "cuda"
+  epochs: 50
+  batch_size: 4
+  num_workers: 6
+  lr: 0.0001
+  weight_decay: 0.01

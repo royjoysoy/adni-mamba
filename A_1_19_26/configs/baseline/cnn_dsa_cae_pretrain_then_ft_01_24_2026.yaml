@@ -1,0 +1,54 @@
+# File: configs/baseline/cnn_dsa_cae_pretrain_then_ft_01_24_2026.yaml
+# Date: 01_24_2026
+#
+# Finetune Run (Stage B):
+#   cd ~/royseo/projects/adni-mamba/A_1_19_26
+#   python train_1_20_26.py --config ./configs/baseline/cnn_dsa_cae_pretrain_then_ft_01_24_2026.yaml
+#
+# NOTE:
+#   - train_1_20_26.py ignores "pretrain:" section unless we add a separate pretrain script.
+#   - Keep pretrain info here as run documentation.
+
+pretrain:
+  epochs: 30
+  batch_size: 4
+  optimizer: "adam"
+  lr: 0.001
+  amp: true
+  out_ckpt: "./runs/cae_pretrain_01_24_2026/cae_best_01_24_2026.pt"
+  masked_loss: false
+
+experiment:
+  name: "cnn_dsa_ft_from_cae_01_24_2026"
+  seed: 2026
+  output_dir: "./runs"
+
+data:
+  csv_path: "/home/ads_sry/royseo/projects/adni-mamba/data_0/ADNI-raw-4508-1-22-2026.csv"   # <-- 수정
+  split_json: "/home/ads_sry/royseo/projects/adni-mamba/A_1_19_26/splits/split_rids_full_dx2_01_24_2026.json"                       # <-- 수정
+
+  image_id_col: "Image Data ID"
+  rid_col: "RID"
+  label_col: "DX2"
+
+  image_dir: "/home/ads_sry/royseo/data"
+  image_glob_pattern: "*I{image_id}.nii.gz"
+
+  cont_cols: ["Age"]
+  cat_cols: ["Sex"]
+  tabular_standardize: true
+  sex_encoding: "binary"
+
+train:
+  epochs: 20
+  batch_size: 4
+  lr: 0.0001
+  weight_decay: 0.01
+  amp: true
+  device: "cuda"
+  num_workers: 2
+
+model:
+  name: "dsa_3dcnn_init_from_cae_01_24_2026"
+  num_classes: 3
+  cae_ckpt_path: "./runs/cae_pretrain_01_24_2026/cae_best_01_24_2026.pt"
